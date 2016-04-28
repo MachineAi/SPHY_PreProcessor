@@ -1250,7 +1250,7 @@ class SphyPreProcessDialog(QtGui.QDialog, Ui_SphyPreProcessDialog):
             procSteps+=(timeSteps * 3)
         #-Create instance of processForcing
         f = processForcing(self.resultsPath, self.userCRS.authid(), self.spatialRes, [self.xMin, self.yMin, self.xMax, self.yMax],\
-            self.startdate, self.enddate, self.processLog4TextEdit, self.forcingProgressBar, procSteps, self.pcrBinPath)
+            self.startdate, self.enddate, self.processLog4TextEdit, self.forcingProgressBar, procSteps, self.pcrBinPath, processing)
         if self.precDB or self.tempDB:
             #-Database properties
             f.dbSource = self.databaseConfig.get('METEO', 'source')

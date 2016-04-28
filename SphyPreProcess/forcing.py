@@ -4,7 +4,7 @@ from osgeo import osr
 #-Class that defines the processing of the meteorological forcings
 class processForcing():
     def __init__(self, resultsdir, t_srs, resolution, extent, startdate, enddate, \
-            textlog, progbar, procsteps, pcrbinpath):
+            textlog, progbar, procsteps, pcrbinpath, processing):
         #-Create forcing directory in results directory if it does not exist
         self.outdir = os.path.join(resultsdir, 'forcing/')
         if not os.path.isdir(self.outdir):
@@ -51,6 +51,8 @@ class processForcing():
         self.counter = 0.
         #-PCRaster bin directory
         self.pcrBinPath = pcrbinpath
+        #-processing.
+        self.processing = processing
         
     #-Create precipitation forcing based on the database    
     def createPrecDB(self):
@@ -100,8 +102,8 @@ class processForcing():
                 
             self.textLog.append('\nProcessing precipitation from ' + self.dbSource + ' database finished!')
         
-        #-Else if the database is from FEWS_RFE2.0
-        elif self.dbSource == 'FEWS_RFE2.0_GSOD':
+        #-Else if the database is from FEWS_RFE2.0 (For South East Afrika Database) or from ERA-INTERIM (Used for Iberian Peninsula)
+        elif self.dbSource == 'FEWS_RFE2.0_GSOD' or self.dbSource == 'ERA-INTERIM':
             self.textLog.append('Processing precipitation from ' + self.dbSource + ' database...\n')
             for i in range(0, self.timeSteps):
                 daynr = i+1 # required for pcraster extension
@@ -261,6 +263,53 @@ class processForcing():
                     #-Remove temporary files
                     self.removeFiles(self.tempdir, self.outdir)
             self.textLog.append('\nProcessing temperature from ' + self.dbSource + ' database finished!')
+        
+        #-If the database is from ERA-INTERIM (Used for Iberian Peninsula)
+        elif self.dbSource == 'ERA-INTERIM':
+            self.textLog.append('\nProcessing temperature from ' + self.dbSource + ' database...\n')
+            #-Loop over the 3 temperature forcings and create daily maps
+            forcings = {'tavg': self.tavgDBPath, 'tmax': self.tmaxDBPath, 'tmin': self.tminDBPath}
+            for f in forcings:
+                for i in range(0, self.timeSteps):
+                    daynr = i+1 # required for pcraster extension
+                    curdate = self.startDate + datetime.timedelta(days=i)
+                    year = str(curdate.year)
+                    month = curdate.month
+                    if month<10:
+                        month = '0'+str(month)
+                    else:
+                        month = str(month)
+                    day = curdate.day
+                    if day<10:
+                        day = '0'+str(day)
+                    else:
+                        day = str(day)
+                    self.textLog.append(f + ' ' + year + '-' + month + '-' + day)    
+                    commands = []
+                    #-Calculate reference elevation temperature
+                    self.processing.runalg("gdalogr:rastercalculator", forcings[f] + year + month + day + '_' + f + '.tif', "1", self.dbDem,"1",None,"1",None,"1",None,"1",None,"1","A+(B*0.0065)","-9999",5,"",self.tempdir + 'temp.tif')
+                    #-command to project, resample, and extract to the correct extent
+                    com = 'gdalwarp -s_srs ' + self.dbSrs + ' -t_srs ' + self.t_srs + ' -te ' + \
+                        self.xMin + ' ' + self.yMin + ' ' + self.xMax + ' ' + self.yMax + ' -tr ' + \
+                        self.t_res + ' ' + self.t_res + ' -r bilinear ' + self.tempdir + 'temp.tif ' + \
+                        self.tempdir + 'temp2.tif'
+                    commands.append(com)
+                    #-Convert reference temperature map to pcraster map
+                    com = 'gdal_translate -of PCRaster -ot Float32 ' + self.tempdir + 'temp2.tif ' + self.tempdir + 'temp.map'
+                    commands.append(com)
+                    #-command to calculate the correct temperature using a lapse rate
+                    pcrstr = self.pcrExtention(daynr)
+                    com = self.pcrasterModelFile('"' + self.outdir + f + pcrstr + '" = "' + self.tempdir + \
+                        'temp.map" - (0.0065 * "' + self.modelDem + '")')
+                    commands.append('pcrcalc -f ' + com)
+                    self.subProcessing(commands)
+                    #-Progress bar
+                    self.counter += 1
+                    self.progBar.setValue(self.counter/self.procSteps*100)
+                    #-Remove temporary files
+                    self.removeFiles(self.tempdir, self.outdir)
+
+            self.textLog.append('\nProcessing temperature from ' + self.dbSource + ' database finished!')    
         else:
             self.textLog.append('\nError: processing of temperature from database not possible because database is not found')
         
