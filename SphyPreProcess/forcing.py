@@ -339,7 +339,9 @@ class processForcing():
                 f.write('X,Y,temp_prec\n')
                 #-Write first day of data to file
                 for i in range(1, len(row)):
-                    f.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), float(row[i])))
+                    ##-TEST FOR missing values
+                    if int(float(row[i])) != -9999:
+                        f.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), float(row[i])))
                 f.close()
                 #-Create a VRT file
                 self.vrtCreate('temp_prec')
@@ -380,7 +382,9 @@ class processForcing():
                     f = open(os.path.join(self.tempdir, 'temp_prec.csv'), 'w')
                     f.write('X,Y,temp_prec\n')
                     for i in range(1, len(row)):
-                        f.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), float(row[i])))
+                        ##-TEST FOR missing values
+                        if int(float(row[i])) != -9999:
+                            f.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), float(row[i])))
                     f.close()
                     #-Create a VRT File
                     self.vrtCreate('temp_prec')
@@ -449,8 +453,10 @@ class processForcing():
                     fi.write('X,Y,' + fvar + '\n')
                     #-Write first day of data to file
                     for i in range(1, len(stations) + 1):
-                        Tref = float(stations[i-1][3]) * 0.0065 + float(row[i+s])  #-convert temperature to reference level temperature
-                        fi.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), Tref))
+                        ##-TEST FOR missing values
+                        if int(float(row[i+s])) != -9999:
+                            Tref = float(stations[i-1][3]) * 0.0065 + float(row[i+s])  #-convert temperature to reference level temperature
+                            fi.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), Tref))
                     fi.close()
                     #-Create a VRT file
                     self.vrtCreate(fvar)
@@ -496,8 +502,10 @@ class processForcing():
                         fi = open(os.path.join(self.tempdir,  fvar + '.csv'), 'w')
                         fi.write('X,Y,' + fvar + '\n')
                         for i in range(1, len(stations) + 1):
-                            Tref = float(stations[i-1][3]) * 0.0065 + float(row[i+s])  #-convert temperature to reference level temperature
-                            fi.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), Tref))
+                            ##-TEST FOR missing values
+                            if int(float(row[i+s])) != -9999:
+                                Tref = float(stations[i-1][3]) * 0.0065 + float(row[i+s])  #-convert temperature to reference level temperature
+                                fi.write('%f,%f,%f\n' %(float(stations[i-1][1]), float(stations[i-1][2]), Tref))
                         fi.close()
                         #-Create a VRT file
                         self.vrtCreate(fvar)
@@ -624,7 +632,8 @@ class processForcing():
                 locXY = self.coordinateTransform(4326, t_srs, float(row[3]), float(row[2]))
                 X = locXY[0]
                 Y = locXY[1]
-                statdata = [int(row[0]), X, Y, float(row[4])]
+                #statdata = [int(row[0]), X, Y, float(row[4])]
+                statdata = [str(row[0]), X, Y, float(row[4])]
                 stations.append(statdata)
         return stations
                 
