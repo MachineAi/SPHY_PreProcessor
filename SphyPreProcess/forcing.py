@@ -4,7 +4,7 @@ from osgeo import osr
 #-Class that defines the processing of the meteorological forcings
 class processForcing():
     def __init__(self, resultsdir, t_srs, resolution, extent, startdate, enddate, \
-            textlog, progbar, procsteps, pcrbinpath, processing):
+            textlog, progbar, procsteps, pcrbinpath):
         #-Create forcing directory in results directory if it does not exist
         self.outdir = os.path.join(resultsdir, 'forcing/')
         if not os.path.isdir(self.outdir):
@@ -51,8 +51,6 @@ class processForcing():
         self.counter = 0.
         #-PCRaster bin directory
         self.pcrBinPath = pcrbinpath
-        #-processing.
-        self.processing = processing
         
     #-Create precipitation forcing based on the database    
     def createPrecDB(self):
@@ -287,7 +285,9 @@ class processForcing():
                     self.textLog.append(f + ' ' + year + '-' + month + '-' + day)    
                     commands = []
                     #-Calculate reference elevation temperature
-                    self.processing.runalg("gdalogr:rastercalculator", forcings[f] + year + month + day + '_' + f + '.tif', "1", self.dbDem,"1",None,"1",None,"1",None,"1",None,"1","A+(B*0.0065)","-9999",5,"",self.tempdir + 'temp.tif')
+                    com = 'gdal_calc.py -A ' + forcings[f] + year + month + day + '_' + f + '.tif -B ' + \
+                        self.dbDem + ' --outfile=' + self.tempdir + 'temp.tif --calc="A+(B*0.0065)"'
+                    commands.append(com)
                     #-command to project, resample, and extract to the correct extent
                     com = 'gdalwarp -s_srs ' + self.dbSrs + ' -t_srs ' + self.t_srs + ' -te ' + \
                         self.xMin + ' ' + self.yMin + ' ' + self.xMax + ' ' + self.yMax + ' -tr ' + \
